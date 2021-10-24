@@ -11,6 +11,7 @@ import ResNet as models
 from torch.utils import model_zoo
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+
 # Training settings
 batch_size = 32
 epochs = 200
