@@ -30,7 +30,7 @@ class Settings:
         #self.options['data_path'] = os.path.join(datasets_path,' ISBIOrig/training')
         self.options['data_path'] = os.path.join(datasets_path, 'ISBIOrig/training')
         self.options['code_path'] = os.path.join(root_path, 'Code/deep_transfer_learning/UDA/pytorch0.3/DAN')
-        self.options['train_folder'] = os.path.join(datasets_path, 'ISBI1/train/')
+        self.options['train_folder'] = os.path.join(datasets_path, 'ISBI/train/')
         self.options['test_folder'] = os.path.join(datasets_path, 'ISBI/test/')
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
         self.options['h5_path'] = self.options['root_dir']+'DataSets/ISBI/h5df_files/'
@@ -110,7 +110,7 @@ class Settings:
         self.options['randomize_train'] = True
 
         self.options['seed'] = 55
-        self.options['k_fold'] = 2
+        self.options['k_fold'] = 5
 
         # --------------------------------------------------
         # model parameters

@@ -58,7 +58,7 @@ def validate(model):
         test_loss += F.cross_entropy(F.log_softmax(s_output, dim = 1), label_source_valid.type(torch.long)) # sum up batch loss
         pred = s_output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(label_source_valid.view_as(pred)).cpu().sum()
-
+        print(i)
 
     test_loss /= len_source_valid_dataset
     print('\n{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
@@ -69,6 +69,7 @@ def validate(model):
 
 
 if __name__ == '__main__':
+    torch.cuda.empty_cache()
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     #torch.cuda.set_device(1)
     writer = SummaryWriter('runs')
@@ -159,10 +160,12 @@ if __name__ == '__main__':
 
     for epoch in range(1, epochs + 1):
         train(epoch, model, optimizer)
-        t_correct = validate(model)
+        #torch.cuda.synchronize()
+        #t_correct = validate(model)
+        t_correct=0
         if t_correct > correct:
             correct = t_correct
+        #correct = correct.item()
         print(correct)
-        print(correct.item())
         print('source: {} to target: {} max correct: {} max accuracy{: .2f}%\n'.format(
-              source_name, '', correct.item(), 100. * correct.item() / len_source_valid_dataset))
+              source_name, '', correct, 100. * correct / len_source_valid_dataset))
