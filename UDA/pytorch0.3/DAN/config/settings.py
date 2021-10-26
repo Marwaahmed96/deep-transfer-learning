@@ -110,7 +110,7 @@ class Settings:
         self.options['randomize_train'] = True
 
         self.options['seed'] = 55
-        self.options['k_fold'] = 5
+        self.options['k_fold'] = 2
 
         # --------------------------------------------------
         # model parameters
