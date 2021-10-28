@@ -14,7 +14,7 @@ from utils.data_preprocess import *
 import dataset_loader as dl
 from torch.utils.tensorboard import SummaryWriter
 import sys
-
+from pathlib import Path
 
 def train(epoch, model, optimizer):
 
@@ -157,11 +157,13 @@ if __name__ == '__main__':
         {'params': model.sharedNet.parameters()},
         {'params': model.cls_fc.parameters(), 'lr': lr[1]},
         ], lr=lr[0], momentum=momentum, weight_decay=l2_decay)
-
+    Path('./models/isbi_train').mkdir(parents=True, exist_ok=True)
     for epoch in range(1, epochs + 1):
         train(epoch, model, optimizer)
         #torch.cuda.synchronize()
         #t_correct = validate(model)
+        FILE = './models/isbi_train/'+str(epoch)+'_model.pth'
+        torch.save(model, FILE)
         t_correct=0
         if t_correct > correct:
             correct = t_correct

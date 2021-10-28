@@ -72,7 +72,7 @@ class Settings:
         # percentage of the training vector that is going to be used to validate the model during training
         self.options['train_split'] = 0.25
         # maximum number of epochs used to train the model
-        self.options['max_epochs'] = 400
+        self.options['max_epochs'] = 200
         # maximum number of epochs without improving validation before stopping training
         self.options['patience'] = 50
         # Number of samples used to test at once.
