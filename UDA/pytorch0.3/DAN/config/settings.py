@@ -29,10 +29,11 @@ class Settings:
 
         #self.options['data_path'] = os.path.join(datasets_path,' ISBIOrig/training')
         self.options['data_path'] = os.path.join(datasets_path, 'ISBIOrig/training')
-        self.options['code_path'] = os.path.join(root_path, 'Code/deep_transfer_learning/UDA/pytorch0.3/DAN')
+        self.options['code_path'] = os.path.join(root_path, 'Code/deep-transfer-learning/UDA/pytorch0.3/DAN')
         self.options['train_folder'] = os.path.join(datasets_path, 'ISBI/train/')
         self.options['test_folder'] = os.path.join(datasets_path, 'ISBI/test/')
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
+        self.options["history_csv_path"] = os.path.join(self.options['train_folder'], "history_data.csv")
         self.options['h5_path'] = self.options['root_dir']+'DataSets/ISBI/h5df_files/'
 
         # ------------------------
@@ -67,7 +68,8 @@ class Settings:
         # --------------------------------------------------
 
         # current experiment name
-        self.options['experiment'] = 'isbi_full_train_2modalities'
+        self.options['experiment'] = 'resnet_DAN_full_isbi_train2'
+        self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'], "history_data.csv")
         self.options['pretrained'] = None
         # percentage of the training vector that is going to be used to validate the model during training
         self.options['train_split'] = 0.25
@@ -126,13 +128,14 @@ class Settings:
 
         # model train config
         # file paths to store the network parameter weights. These can be reused for posterior use.
-        self.options['weight_paths'] = self.options['code_path']+'weights/'
+        self.options['weight_paths'] = os.path.join(self.options['code_path'],'weights')
         # where the model weights initialization so each time begin with the same weight to compare between different models
-        self.options['initial_weights_path'] = self.options['weight_paths']+'initial_weights.hdf5'
+        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'],'initial_weights.hdf5')
         self.options['load_initial_weights'] = True
         # Where to save the model weights during train
         # ,TPR,FPR,FNR,Tversky,dice_coefficient
         self.options['metrics'] = ['mse']
+        self.options['pre_trained_model'] = '200_model.pth'
 
     # @staticmethod
     def get_options(self):

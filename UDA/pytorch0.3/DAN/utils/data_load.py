@@ -5,6 +5,8 @@ import nibabel as nib
 from operator import itemgetter
 #from libs.CNN.build_model import define_training_layers, fit_model
 from operator import add
+import torch
+from torch.autograd import Variable
 
 def load_training_data(train_x_data,
                        train_y_data,
@@ -88,13 +90,11 @@ def load_training_data(train_x_data,
         # Y = [ num_samples, 1, p1, p2, p3]
         Y = np.expand_dims(Y, axis=1)
     else:
-        centers = [idx//2 if idx % 2 == 0 else idx//2 + 1 for idx in Y.shape]
-        print('center:',centers)
         # Y = [num_samples,]
         if Y.shape[3] == 1:
-            Y = Y[:, centers[1], centers[2], :]
+            Y = Y[:, Y.shape[1] // 2, Y.shape[2] // 2, :]
         else:
-            Y = Y[:, centers[1], centers[2], centers[3]]
+            Y = Y[:, Y.shape[1] // 2, Y.shape[2] // 2, Y.shape[3] // 2]
         Y = np.squeeze(Y)
 
     return X, Y, selected_voxels
@@ -205,6 +205,60 @@ def load_train_patches(x_data,
     return X, Y
 
 
+def test_cascaded_model(model, test_x_data, options, cuda):
+    """
+    Test the cascaded approach using a learned model
+
+    inputs:
+
+    - CNN model: a list containing the two cascaded CNN models
+
+    - test_x_data: a nested dictionary containing testing image paths:
+           test_x_data['scan_name']['modality'] = path_to_image_modality
+
+
+    - options: dictionary containing general hyper-parameters:
+
+    outputs:
+        - output_segmentation
+    """
+
+    # print '> CNN: testing the model'
+
+    # organize experiments
+    exp_folder = os.path.join(options['test_folder'],
+                              options['test_scan'],
+                              options['experiment'])
+    if not os.path.exists(exp_folder):
+        os.mkdir(exp_folder)
+
+    # first network
+    options['test_name'] = options['experiment'] + '_debug_prob_0.nii.gz'
+
+    # only save the first iteration result if debug is True
+    save_nifti = True if options['debug'] is True else False
+    t1 = test_scan(model,
+                   test_x_data,
+                   options,
+                   save_nifti=save_nifti, cuda=cuda)
+
+
+    # postprocess the output segmentation
+    # obtain the orientation from the first scan used for testing
+    scans = test_x_data.keys()
+    flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
+    flair_image = load_nii(flair_scans[0])
+    options['test_name'] = options['experiment'] + '_hard_seg.nii.gz'
+    #out_segmentation = post_process_segmentation(t1,
+    #                                             options,
+    #                                             save_nifti=True,
+    #                                             orientation=flair_image.affine)
+
+    # return out_segmentation
+    #return out_segmentation
+    return t1
+
+
 def load_test_patches(test_x_data,
                       patch_size,
                       batch_size,
@@ -295,18 +349,16 @@ def get_patches(image, centers, patch_size=(15, 15, 15)):
     sizes_match = [len(center) == len(patch_size) for center in centers]
 
     if list_of_tuples and sizes_match:
-        patch_half = tuple([[idx//2, (idx//2) - 1 if idx % 2 == 0 else idx//2] for idx in patch_size])
-        #patch_half = tuple([idx/2 for idx in patch_size])
-        new_centers = [map(add, center, (p[0] for p in patch_half)) for center in centers]
-        #new_centers = [map(add, center, patch_half) for center in centers]
-        padding = tuple((idx[0], size-idx[1]) for idx, size in zip(patch_half, patch_size))
-        #padding = tuple((idx, size-idx) for idx, size in zip(patch_half, patch_size))
-        
+        patch_half = tuple([idx//2 for idx in patch_size])
+        new_centers = [map(add, center, patch_half) for center in centers]
+        padding = tuple((idx, size-idx)
+                        for idx, size in zip(patch_half, patch_size))
         new_image = np.pad(image, padding, mode='constant', constant_values=0)
-        slices = [[slice(c_idx-p_idx[0], c_idx+p_idx[1]+1) for (c_idx, p_idx, s_idx) in zip(center, patch_half, patch_size)]
+        slices = [[slice(c_idx-p_idx, c_idx+(s_idx-p_idx))
+                   for (c_idx, p_idx, s_idx) in zip(center,
+                                                    patch_half,
+                                                    patch_size)]
                   for center in new_centers]
-        #slices = [[slice(c_idx-p_idx, c_idx+(s_idx-p_idx)) for (c_idx, p_idx, s_idx) in zip(center, patch_half, patch_size)]
-        #          for center in new_centers]
         patches = [new_image[idx] for idx in slices]
 
     return patches
@@ -317,7 +369,7 @@ def test_scan(model,
               test_x_data,
               options,
               save_nifti=True,
-              candidate_mask=None):
+              candidate_mask=None, cuda= True):
     """
     Test data based on one model
     Input:
@@ -354,20 +406,41 @@ def test_scan(model,
     if options['debug'] is True:
         print ("> DEBUG: testing current_batch:", batch.shape,)
 
-    y_pred = model['net'].predict(np.squeeze(batch),
-                                  options['batch_size'])
-    [x, y, z] = np.stack(centers, axis=1)
-    seg_image[x, y, z] = y_pred[:, 1]
+        
+
+    model.eval()
+    
+    for i in range(len(batch)//options['batch_size']):
+        start=i*options['batch_size']
+        end=start+options['batch_size']
+        data_source_valid = batch[start:end,:]
+
+        data_source_valid = torch.from_numpy(data_source_valid)
+        if cuda:
+            data_source_valid = data_source_valid.cuda()
+        data_source_valid= Variable(data_source_valid, volatile=True)
+        s_output = model(data_source_valid)
+
+        #F.log_softmax(s_output, dim = 1) # sum up batch loss
+        y_pred = s_output.data.max(1)[1] # get the index of the max log-probability
+        y_pred = y_pred.detach().cpu().numpy()
+        y_pred.reshape(-1,1)
+        #y_pred = y_pred.numpy()
+        current_centers = centers[start:end]
+        [x, y, z] = np.stack(current_centers, axis=1)
+
+        seg_image[x, y, z] = y_pred
+    
     if options['debug'] is True:
             print ("...done!")
 
     # check if the computed volume is lower than the minimum accuracy given
     # by the min_error parameter
-    if check_min_error(seg_image, options, flair_image.header.get_zooms()):
-        if options['debug']:
-            print ("> DEBUG ", scans[0], "lesion volume below ", \
-                options['min_error'], 'ml')
-        seg_image = np.zeros_like(flair_image.get_data().astype('float32'))
+    #if check_min_error(seg_image, options, flair_image.header.get_zooms()):
+    #    if options['debug']:
+    #        print ("> DEBUG ", scans[0], "lesion volume below ", \
+    #            options['min_error'], 'ml')
+    #    seg_image = np.zeros_like(flair_image.get_data().astype('float32'))
 
     if save_nifti:
         out_scan = nib.Nifti1Image(seg_image, affine=flair_image.affine)
@@ -378,6 +451,7 @@ def test_scan(model,
 
     return seg_image
 
+        
 
 def check_min_error(input_scan, options, voxel_size):
     """

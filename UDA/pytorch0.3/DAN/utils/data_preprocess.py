@@ -35,6 +35,32 @@ def generate_csv(options):
     return train_data
 
 
+def miccai_generate_csv(options):
+    # order miccai dataset
+    train_csv_path = options["train_csv_path"]
+    modalities_names = options['preprocess_x_names']
+    modalities = options['modalities']
+    masks_names = options['preprocess_y_names']
+    masks = options['masks']
+    # generate csv file of files names and split dataset
+    _, dirs, _ = next(os.walk(options['train_folder']))
+    if os.path.isfile(train_csv_path):
+        os.remove(train_csv_path)
+
+    train_data = pd.DataFrame(columns=['root_path', 'center_id', 'patient', *masks, *modalities, 'fold'])
+
+    for dir_ in dirs:
+        center_id = '_'.join(dir_.split('_')[:2])
+        patient = '_'.join(dir_.split('_')[2:])
+        root_path = os.path.join(options['train_folder'], dir_, options['tmp_folder'])
+        df = pd.DataFrame([[root_path, center_id, patient, *masks_names, *modalities_names, 1]], columns=['root_path', 'center_id', 'patient', *masks, *modalities, 'fold'])
+        train_data = train_data.append(df)
+    train_data.reset_index(inplace=True)
+    train_data.drop(columns=['index'], inplace=True)
+    train_data.to_csv(train_csv_path, index=False)
+    return train_data
+
+
 def resize_images(options):
     # resize images just for test as image large remove it later
     root, dirs, _ = next(os.walk(options['train_folder']))
@@ -55,6 +81,19 @@ def split_folds(train_csv_path, seed=300, k_fold=5):
 
     for i, (train_index, val_index) in enumerate(
         skf.split(df, df["patient_id"])
+        ):
+        df.loc[val_index, "fold"] = i
+    df.reset_index(inplace=True)
+    df.drop(columns=['index'], inplace=True)
+    df.to_csv(train_csv_path, index=False)
+
+
+def miccai_split_folds(train_csv_path, seed=300, k_fold=5):
+    df = pd.read_csv(train_csv_path)
+    skf = StratifiedKFold(n_splits=k_fold, random_state=seed, shuffle=True)
+
+    for i, (train_index, val_index) in enumerate(
+        skf.split(df, df["center_id"])
         ):
         df.loc[val_index, "fold"] = i
     df.reset_index(inplace=True)
