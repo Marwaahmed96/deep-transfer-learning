@@ -419,7 +419,7 @@ def test_scan(model,
         if cuda:
             data_source_valid = data_source_valid.cuda()
         data_source_valid= Variable(data_source_valid, volatile=True)
-        s_output = model(data_source_valid)
+        s_output,_ = model(data_source_valid)
 
         #F.log_softmax(s_output, dim = 1) # sum up batch loss
         y_pred = s_output.data.max(1)[1] # get the index of the max log-probability

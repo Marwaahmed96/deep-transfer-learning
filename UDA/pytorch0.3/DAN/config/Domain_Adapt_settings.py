@@ -34,7 +34,9 @@ class Settings:
         self.options['target_test_folder'] = os.path.join(datasets_path, 'ISBI/test/')
         self.options["source_train_csv_path"] = os.path.join(self.options['source_train_folder'], "train_data.csv")
         self.options["target_train_csv_path"] = os.path.join(self.options['target_train_folder'], "train_data.csv")
-        self.options["adapt_history_csv_path"] = os.path.join(self.options['target_train_folder'], "adapt_history_data.csv")
+        # current experiment name
+        self.options['experiment'] = 'resnet_DAN_domain_adapt_train'
+        self.options["adapt_history_csv_path"] = os.path.join(self.options['target_train_folder'],self.options['experiment'] + '_' + "history_data.csv")
 
         # ------------------------
         # DataBase
@@ -67,8 +69,6 @@ class Settings:
         # Model
         # --------------------------------------------------
 
-        # current experiment name
-        self.options['experiment'] = 'resnet_DAN_domain_adapt_train'
         self.options['source_experiment'] = 'resnet_DAN_full_miccai_train'
         self.options['pretrained'] = None
         # percentage of the training vector that is going to be used to validate the model during training

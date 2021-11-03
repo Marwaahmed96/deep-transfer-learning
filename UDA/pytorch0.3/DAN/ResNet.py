@@ -154,10 +154,10 @@ class DANNet(nn.Module):
         self.sharedNet = resnet50(False)
         self.cls_fc = nn.Linear(2048, num_classes)
 
-    def forward(self, source, target):
+    def forward(self, source, target=None):
         loss = 0
         source = self.sharedNet(source)
-        if self.training == True:
+        if self.training is True and target is not None:
             target = self.sharedNet(target)
             #loss += mmd.mmd_rbf_accelerate(source, target)
             loss += mmd.mmd_rbf_noaccelerate(source, target)

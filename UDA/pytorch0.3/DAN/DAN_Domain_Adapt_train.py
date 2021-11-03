@@ -24,8 +24,8 @@ def load_pretrain(model):
 
 def train(epoch, model, optimizer):
 
-    optimizer.param_group[0]['lr'] = lr[0] / math.pow((1 + 10 * (epoch - 1) / epochs), 0.75)
-    optimizer.param_group[1]['lr'] = lr[1] / math.pow((1 + 10 * (epoch - 1) / epochs), 0.75)
+    optimizer.param_groups[0]['lr'] = lr[0] / math.pow((1 + 10 * (epoch - 1) / epochs), 0.75)
+    optimizer.param_groups[1]['lr'] = lr[1] / math.pow((1 + 10 * (epoch - 1) / epochs), 0.75)
 
     model.train()
 
@@ -34,7 +34,7 @@ def train(epoch, model, optimizer):
     num_iter = len_source_train_loader
     for i in range(1, num_iter):
         data_source, label_source = iter_source.next()
-        data_target, _ = iter_target.next()
+        data_target = iter_target.next()
         if i % len_target_train_loader == 0:
             iter_target = iter(target_train_loader)
         if cuda:
@@ -143,6 +143,14 @@ if __name__ == '__main__':
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 
+    # to test on small data
+    source_train_x_data={'CHB_train_Case01':source_train_x_data['CHB_train_Case01']}
+    source_train_y_data={'CHB_train_Case01':source_train_y_data['CHB_train_Case01']}
+    target_train_x_data={'training01_01':target_train_x_data['training01_01']}
+    target_valid_x_data={'training01_03':target_valid_x_data['training01_03']}
+    target_valid_y_data={'training01_03':target_valid_y_data['training01_03']}
+
+
     source_train_loader = dl.load_training(options, source_train_x_data, source_train_y_data)
     target_train_loader = dl.load_training(options, target_train_x_data, y_data=None)
     target_valid_loader = dl.load_training(options, target_valid_x_data, y_data=target_valid_y_data)
@@ -193,8 +201,8 @@ if __name__ == '__main__':
         print('source: {} to target: {} max correct: {} max accuracy{: .2f}%\n'.format(
               source_name, '', t_correct.item(), 100. * t_correct.item() / len_target_valid_dataset))
 
+        history_df.reset_index(inplace=True)
+        history_df.drop(columns=['index'], inplace=True)
+        history_df.to_csv(options['history_csv_path'], index=False)
         if patience_value >= patience:
             break
-    history_df.reset_index(inplace=True)
-    history_df.drop(columns=['index'], inplace=True)
-    history_df.to_csv(options['history_csv_path'], index=False)

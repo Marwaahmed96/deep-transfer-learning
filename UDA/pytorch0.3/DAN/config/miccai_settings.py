@@ -33,7 +33,9 @@ class Settings:
         self.options['train_folder'] = os.path.join(datasets_path, 'miccai/train/')
         self.options['test_folder'] = os.path.join(datasets_path, 'miccai/test/')
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
-        self.options["history_csv_path"] = os.path.join(self.options['train_folder'], "history_data.csv")
+        # current experiment name
+        self.options['experiment'] = 'resnet_DAN_full_miccai_train2'
+        self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + "history_data.csv")
         self.options['h5_path'] = self.options['root_dir']+'DataSets/miccai/h5df_files/'
 
         # ------------------------
@@ -67,15 +69,13 @@ class Settings:
         # Model
         # --------------------------------------------------
 
-        # current experiment name
-        self.options['experiment'] = 'resnet_DAN_full_miccai_train'
         self.options['pretrained'] = None
         # percentage of the training vector that is going to be used to validate the model during training
         self.options['train_split'] = 0.25
         # maximum number of epochs used to train the model
         self.options['max_epochs'] = 200
         # maximum number of epochs without improving validation before stopping training
-        self.options['patience'] = 20
+        self.options['patience'] = 50
         # Number of samples used to test at once.
         self.options['batch_size'] = 128
         # verbosity of CNN messaging: 00 (none), 01 (low), 10 (medium), 11 (high)

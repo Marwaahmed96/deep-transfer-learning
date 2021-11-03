@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from utils.data_load import *
 from config.settings import *
 
+
 def load_target_voxels(train_x_data, options):
     # get_scan names and number of modalities used
     scans = list(train_x_data.keys())
@@ -15,31 +16,42 @@ def load_target_voxels(train_x_data, options):
     # select voxels with intensity higher than threshold
     selected_voxels = [image > options['min_th'] for image in images_norm]
     data = []
-
-    for m in modalities:
-        x_data = [train_x_data[s][m] for s in scans]
     random_state=42
     datatype=np.float32
     patch_size = options['patch_size']
-    # Get all the x,y,z coordinates for each image
-    centers = [get_mask_voxels(mask) for mask in selected_voxels]
 
-    patches = [np.array(get_patches(image, centers, patch_size))
-                     for image, centers in zip(images_norm, centers)]
-    return patches
+    for m in modalities:
+        x_data = [train_x_data[s][m] for s in scans]
+        images = [load_nii(name).get_data() for name in x_data]
+        images_norm = [normalize_data(im) for im in images]
+        # Get all the x,y,z coordinates for each image
+        centers = [get_mask_voxels(mask) for mask in selected_voxels]
+
+        x_patches = [np.array(get_patches(image, centers, patch_size))
+                         for image, centers in zip(images_norm, centers)]
+
+        data.append(np.concatenate(x_patches))
+    X = np.stack(data, axis=1)
+    return X
+
 
 class GenerateDataset(Dataset):
     # dictionary of x_data files names, y_data files names
     def __init__(self, options, x_data, y_data, transform):
-        print("> CNN: loading training data for first model")
+        print("> CNN: loading training data")
         if y_data is None:
+            print('y_data is none')
             X = load_target_voxels(x_data, options)
             Y = None
-            print('none')
+
         else:
             X, Y, sel_voxels = load_training_data(x_data, y_data, options)
 
-        print('> CNN: train_x ', X.shape, 'train_y ', Y.shape)
+        if y_data is None:
+            print('> CNN: train_x ', X.shape, 'train_y ')
+        else:
+            print('> CNN: train_x ', X.shape, 'train_y ', Y.shape)
+
         self.batch_size = options['batch_size']
         self.transform = transform
         self.x_train = torch.from_numpy(X)

@@ -8,7 +8,6 @@ import os
 import math
 import data_loader
 import ResNet as models
-#from torch.utils import model_zoo
 from config.settings import *
 from utils.data_preprocess import *
 import dataset_loader as dl
@@ -33,8 +32,8 @@ def train(epoch, model, optimizer):
         data_source_train, label_source_train = Variable(data_source_train), Variable(label_source_train)
 
         optimizer.zero_grad()
-        label_source_train_pred = model(data_source_train)
-        loss = F.cross_entropy(F.log_softmax( label_source_train_pred, dim=1), label_source_train.type(torch.long))
+        label_source_train_pred,_ = model(data_source_train)
+        loss = F.cross_entropy(F.log_softmax(label_source_train_pred, dim=1), label_source_train.type(torch.long))
         loss.backward()
         optimizer.step()
 
@@ -56,7 +55,7 @@ def validate(model):
             if cuda:
                 data_source_valid, label_source_valid = data_source_valid.cuda(), label_source_valid.cuda()
             data_source_valid, label_source_valid = Variable(data_source_valid), Variable(label_source_valid)
-            s_output = model(data_source_valid)
+            s_output,_ = model(data_source_valid)
             test_loss += F.cross_entropy(F.log_softmax(s_output, dim = 1), label_source_valid.type(torch.long)) # sum up batch loss
             pred = s_output.data.max(1)[1] # get the index of the max log-probability
             correct += pred.eq(label_source_valid.view_as(pred)).cpu().sum()
@@ -143,10 +142,10 @@ if __name__ == '__main__':
     len_source_train_loader = len(source_train_loader)
     len_source_valid_loader = len(source_valid_loader)
 
-    model = models.DANNet_source(num_classes=2)
-    writer.add_graph(model, torch.rand(size=(128,2,16,16,16)))
-    writer.flush()
-    writer.close()
+    model = models.DANNet(num_classes=2)
+    #writer.add_graph(model, torch.rand(size=(128,2,16,16,16)))
+    #writer.flush()
+    #writer.close()
     #sys.exit()
     correct = 0
     print(model)
@@ -178,13 +177,13 @@ if __name__ == '__main__':
             patience_value += 1
         print('patience: ', patience_value)
         #correct = correct.item()
-        df = pd.DataFrame([[lr[0], 0, 0, test_loss.item(),  correct.item() / len_source_valid_dataset]], columns=['lr', 'loss', 'accuracy', 'val_loss', 'val_accuracy'])
+        df = pd.DataFrame([[lr[0], 0, 0, test_loss.item(),  t_correct.item() / len_source_valid_dataset]], columns=['lr', 'loss', 'accuracy', 'val_loss', 'val_accuracy'])
         history_df = history_df.append(df)
         print('source: {} to target: {} max correct: {} max accuracy{: .2f}%\n'.format(
-              source_name, '', correct.item(), 100. * correct.item() / len_source_valid_dataset))
+              source_name, '', t_correct.item(), 100. * t_correct.item() / len_source_valid_dataset))
 
+        history_df.reset_index(inplace=True)
+        history_df.drop(columns=['index'], inplace=True)
+        history_df.to_csv(options['history_csv_path'], index=False)
         if patience_value >= patience:
             break
-    history_df.reset_index(inplace=True)
-    history_df.drop(columns=['index'], inplace=True)
-    history_df.to_csv(options['history_csv_path'], index=False)
