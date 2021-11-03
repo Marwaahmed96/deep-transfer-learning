@@ -14,27 +14,20 @@
 
 import os
 current_path = os.getcwd()
-root_path= '/'.join(current_path.split('/')[:current_path.split('/').index('Code')])
-datasets_path=os.path.join(root_path,'DataSets')
+root_path = '/'.join(current_path.split('/')[:current_path.split('/').index('Code')])
+datasets_path = os.path.join(root_path, 'DataSets')
+
 
 class Settings:
     def __init__(self):
 
         self.options = dict()
-        #------------------------
+        # ------------------------
         # Paths
-        #------------------------
+        # ------------------------
         
         self.options['root_dir'] = root_path
-
-        #self.options['data_path'] = os.path.join(datasets_path,' ISBIOrig/training')
-        self.options['data_path'] = os.path.join(datasets_path, 'ISBIOrig/training')
         self.options['code_path'] = os.path.join(root_path, 'Code/deep-transfer-learning/UDA/pytorch0.3/DAN')
-        self.options['train_folder'] = os.path.join(datasets_path, 'miccai/train/')
-        self.options['test_folder'] = os.path.join(datasets_path, 'miccai/test/')
-        self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
-        self.options["history_csv_path"] = os.path.join(self.options['train_folder'], "history_data.csv")
-        self.options['h5_path'] = self.options['root_dir']+'DataSets/miccai/h5df_files/'
 
         self.options['source_train_folder'] = os.path.join(datasets_path, 'miccai/train/')
         self.options['target_train_folder'] = os.path.join(datasets_path, 'ISBI/train/')
@@ -128,16 +121,16 @@ class Settings:
         self.options['channels'] = len(self.options['modalities'])
         self.options['out_channels'] = 1
         self.options['input_shape'] = (*self.options['patch_size'], self.options['channels'])
-        self.options['depth'] = 4 # depth of layers for V/Unet
+        self.options['depth'] = 4  # depth of layers for V/Unet
         self.options['n_base_filters'] = 32
         self.options['pooling_kernel'] = (2, 2, 2)  # pool size for the max pooling operations
         self.options['deconvolution'] = True  # if False, will use upsampling instead of deconvolution
 
         # model train config
         # file paths to store the network parameter weights. These can be reused for posterior use.
-        self.options['weight_paths'] = os.path.join(self.options['code_path'],'weights')
+        self.options['weight_paths'] = os.path.join(self.options['code_path'], 'weights')
         # where the model weights initialization so each time begin with the same weight to compare between different models
-        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'],'initial_weights.hdf5')
+        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights.hdf5')
         self.options['load_initial_weights'] = True
         # Where to save the model weights during train
         # ,TPR,FPR,FNR,Tversky,dice_coefficient
@@ -147,7 +140,3 @@ class Settings:
     # @staticmethod
     def get_options(self):
         return self.options
-
-
-
-
