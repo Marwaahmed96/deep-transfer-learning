@@ -37,7 +37,7 @@ def load_target_voxels(train_x_data, options):
 
 class GenerateDataset(Dataset):
     # dictionary of x_data files names, y_data files names
-    def __init__(self, options, x_data, y_data, transform):
+    def __init__(self, options, x_data, y_data, transform, model=None):
         print("> CNN: loading training data")
         if y_data is None:
             print('y_data is none')
@@ -45,7 +45,7 @@ class GenerateDataset(Dataset):
             Y = None
 
         else:
-            X, Y, sel_voxels = load_training_data(x_data, y_data, options)
+            X, Y, sel_voxels = load_training_data(x_data, y_data, options, model=model)
 
         if y_data is None:
             print('> CNN: train_x ', X.shape, 'train_y ')
@@ -70,11 +70,11 @@ class GenerateDataset(Dataset):
         return self.n_samples
 
 
-def load_training(options, x_data, y_data):
+def load_training(options, x_data, y_data, model=None):
     batch_size = options['batch_size']
     transform = transforms.Compose([transforms.ToTensor()])
 
-    data = GenerateDataset(options=options, x_data=x_data, y_data=y_data, transform=transform)
+    data = GenerateDataset(options=options, x_data=x_data, y_data=y_data, transform=transform, model=model)
     train_loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True, drop_last=True)
     return train_loader
 
