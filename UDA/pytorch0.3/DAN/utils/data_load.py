@@ -7,6 +7,121 @@ from operator import itemgetter
 from operator import add
 import torch
 from torch.autograd import Variable
+import h5py
+import glob
+from pathlib import Path
+import pandas as pd
+from collections import defaultdict
+
+
+def load_target_voxels(train_x_data, options):
+    # get_scan names and number of modalities used
+    scans = list(train_x_data.keys())
+    modalities = train_x_data[scans[0]].keys()
+    flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
+    # load images and normalize their intensities
+    images = [load_nii(image_name).get_data() for image_name in flair_scans]
+    images_norm = [normalize_data(im) for im in images]
+    # select voxels with intensity higher than threshold
+    selected_voxels = [image > options['min_th'] for image in images_norm]
+    data = []
+    random_state=42
+    datatype=np.float32
+    patch_size = options['patch_size']
+
+    for m in modalities:
+        x_data = [train_x_data[s][m] for s in scans]
+        images = [load_nii(name).get_data() for name in x_data]
+        images_norm = [normalize_data(im) for im in images]
+        # Get all the x,y,z coordinates for each image
+        centers = [get_mask_voxels(mask) for mask in selected_voxels]
+
+        x_patches = [np.array(get_patches(image, centers, patch_size))
+                         for image, centers in zip(images_norm, centers)]
+
+        data.append(np.concatenate(x_patches))
+    X = np.stack(data, axis=1)
+    return X
+
+
+def generate_data_patches(x_dict, y_dict, h5_path, train_csv_path, options, dataset_name='ISBI'):
+    if os.path.isdir(h5_path) and glob.glob(h5_path+'*.hdf5') and y_dict is not None:
+        print('Data patches already exist try to change location option')
+    else:
+        # generate patches
+        #x_dict, y_dict = get_data_path(options['train_csv_path'], options['modalities'], options['masks'])
+        train_data = pd.read_csv(train_csv_path)
+        for idx in x_dict:
+            train_x_data = {idx: x_dict[idx]}
+            if y_dict is not None:
+                train_y_data = {idx: y_dict[idx]}
+                X, Y, _ = load_training_data(train_x_data, train_y_data, options)
+                print(X.shape, Y.shape)
+            else:
+                X = load_target_voxels(x_dict, options)
+                Y = None
+                train_y_data = None
+                print(X.shape)
+
+            Path(h5_path).mkdir(parents=True, exist_ok=True)
+            f5_path = os.path.join(h5_path,'file_'+idx+'.hdf5')
+            if dataset_name == 'ISBI':
+                index = train_data.loc[train_data.patient_id+train_data.study == idx].index[0]
+            else:
+                index = train_data.loc[train_data.center_id+'_'+train_data.patient == idx].index[0]
+            train_data.loc[index, "f5_path"] = f5_path
+
+            #for i in raw_data:
+            with h5py.File(f5_path, 'w') as f:
+                print(X.shape, 'patches', X.shape[0], 'modalities', X.shape[-1])
+                f.create_dataset("id", data=idx)
+                f.create_dataset("patches", data=X.shape[0])
+                f.create_dataset("modalities", data=X.shape[-1])
+                f.create_dataset(str('X'), data=X)
+                if Y is not None:
+                    f.create_dataset(str('Y'), data=Y)
+        train_data.to_csv(train_csv_path, index=False)
+
+
+def load_data_patches(h5_path, train_csv_path, phase='train', fold=0):
+    #phase['train', 'valid', 'all']
+    # patches generated in hdf5 files load it
+    if not os.path.isdir(h5_path) and glob.glob(h5_path+'*.hdf5'):
+        print('Data patches not exist try to generate it first or define correct location')
+        return
+    # load patches
+    # files=glob.glob(options['h5_path']+'*.hdf5')
+    files = []
+    df = pd.read_csv(train_csv_path)
+    if phase == 'train':
+        files = df.loc[df['fold'] != fold, 'f5_path'].values
+    elif phase == 'valid':
+        files = df.loc[df['fold'] == fold, 'f5_path'].values
+    else:
+        # all files
+        files = df['f5_path'].values
+
+    files_data = {}
+    files_ref = {}
+    patches = 0
+    for file in files:
+        print(file)
+        #with h5py.File(raw_path, 'r') as f:
+        raw_file = h5py.File(file, 'r')  # should not close it immediately
+        # raw_data = raw_file["raw_data"]
+        raw_data = defaultdict(list)
+
+        for i in raw_file.keys():
+            # to get the matrix: self.data[i][:]
+            # d.data[i][j][0], d.data[i][j][1]
+            raw_data[i] = raw_file[i]
+        patches += raw_data['patches'][()]
+        patient_id = raw_data['id'][()]
+        files_data[patient_id] = raw_data
+        files_ref[patient_id] = raw_file
+
+    return files_data, files_ref, patches
+
 
 def load_training_data(train_x_data,
                        train_y_data,
@@ -205,7 +320,7 @@ def load_train_patches(x_data,
     return X, Y
 
 
-def test_cascaded_model(model, test_x_data, options, cuda):
+def test_cascaded_model(models, test_x_data, options, cuda):
     """
     Test the cascaded approach using a learned model
 
@@ -233,6 +348,7 @@ def test_cascaded_model(model, test_x_data, options, cuda):
         os.mkdir(exp_folder)
 
     # first network
+    model=models[0]
     options['test_name'] = options['experiment'] + '_debug_prob_0.nii.gz'
 
     # only save the first iteration result if debug is True
@@ -242,21 +358,30 @@ def test_cascaded_model(model, test_x_data, options, cuda):
                    options,
                    save_nifti=save_nifti, cuda=cuda)
 
-
+ 
+    # second network
+    options['test_name'] = options['experiment'] + '_prob_1.nii.gz'
+    model= models[1]
+    t2 = test_scan(model,
+                   test_x_data,
+                   options,
+                   save_nifti=True,
+                   candidate_mask=(t1 > 0.8))
+    
     # postprocess the output segmentation
     # obtain the orientation from the first scan used for testing
     scans = test_x_data.keys()
     flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
     flair_image = load_nii(flair_scans[0])
     options['test_name'] = options['experiment'] + '_hard_seg.nii.gz'
-    #out_segmentation = post_process_segmentation(t1,
-    #                                             options,
-    #                                             save_nifti=True,
-    #                                             orientation=flair_image.affine)
+    out_segmentation = post_process_segmentation(t2,
+                                                 options,
+                                                 save_nifti=True,
+                                                 orientation=flair_image.affine)
 
     # return out_segmentation
-    #return out_segmentation
-    return t1
+    return out_segmentation
+    #return t1
 
 
 def load_test_patches(test_x_data,
@@ -409,11 +534,21 @@ def test_scan(model,
         
 
     model.eval()
+    iter_num = len(batch)//options['batch_size'] if len(batch) % options['batch_size'] ==0 else len(batch)//options['batch_size'] +1
     
-    for i in range(len(batch)//options['batch_size']):
+    for i in range(iter_num):
         start=i*options['batch_size']
         end=start+options['batch_size']
-        data_source_valid = batch[start:end,:]
+        data_source_valid = batch[start:end, :]
+        current_centers = centers[start:end]
+        # last batch not completed
+        if i ==iter_num-1 and len(batch) % options['batch_size'] != 0:
+            data_source_valid = batch[start:, :]
+            current_centers = centers[start:]
+            end = options['batch_size']-len(data_source_valid)
+            data_source_valid = np.concatenate((data_source_valid,  batch[:end, :]), axis=0)
+            current_centers = np.concatenate((current_centers, centers[:end]), axis=0)
+
 
         data_source_valid = torch.from_numpy(data_source_valid)
         if cuda:
@@ -426,7 +561,7 @@ def test_scan(model,
         y_pred = y_pred.detach().cpu().numpy()
         y_pred.reshape(-1,1)
         #y_pred = y_pred.numpy()
-        current_centers = centers[start:end]
+
         [x, y, z] = np.stack(current_centers, axis=1)
 
         seg_image[x, y, z] = y_pred
@@ -436,11 +571,11 @@ def test_scan(model,
 
     # check if the computed volume is lower than the minimum accuracy given
     # by the min_error parameter
-    #if check_min_error(seg_image, options, flair_image.header.get_zooms()):
-    #    if options['debug']:
-    #        print ("> DEBUG ", scans[0], "lesion volume below ", \
-    #            options['min_error'], 'ml')
-    #    seg_image = np.zeros_like(flair_image.get_data().astype('float32'))
+    if check_min_error(seg_image, options, flair_image.header.get_zooms()):
+        if options['debug']:
+            print ("> DEBUG ", scans[0], "lesion volume below ", \
+                options['min_error'], 'ml')
+        seg_image = np.zeros_like(flair_image.get_data().astype('float32'))
 
     if save_nifti:
         out_scan = nib.Nifti1Image(seg_image, affine=flair_image.affine)
@@ -521,10 +656,10 @@ def select_voxels_from_previous_model(model, train_x_data, options):
             flair = nib.load(train_x_data[scan]['FLAIR'])
             tmp_seg = nib.Nifti1Image(seg_mask,
                                       affine=flair.affine)
-            tmp_seg.to_filename(os.path.join(options['weight_paths'],
-                                             options['experiment'],
-                                             '.train',
-                                             scan + '_it0.nii.gz'))
+            #tmp_seg.to_filename(os.path.join(options['weight_paths'],
+            #                                 options['experiment'],
+            #                                 '.train',
+            #                                 scan + '_it0.nii.gz'))
 
     # check candidate segmentations:
     # if no voxels have been selected, return candidate voxels on

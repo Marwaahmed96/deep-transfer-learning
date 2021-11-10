@@ -38,7 +38,7 @@ def train(epoch, model, optimizer):
         # loss = F.cross_entropy(F.log_softmax(label_source_train_pred, dim=1), label_source_train.type(torch.long))
         loss = F.cross_entropy(label_source_train_pred, label_source_train.type(torch.long), reduction='mean')
         with torch.no_grad():
-            train_loss+=loss
+            train_loss += loss
             pred = label_source_train_pred.data.max(1)[1] # get the index of the max log-probability
             correct += pred.eq(label_source_train.view_as(pred)).cpu().sum()
         loss.backward()
@@ -84,9 +84,6 @@ def validate(model):
 
 
 if __name__ == '__main__':
-    second_train = True
-    pretrained_model = None
-    train_count = '2' if second_train else '1'
     torch.cuda.empty_cache()
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     # torch.cuda.set_device(1)
@@ -95,11 +92,15 @@ if __name__ == '__main__':
     # Training settings
     st = Settings()
     options = st.get_options()
+
+    second_train = options['second_train']
+    pretrained_model = None
+    train_count = options['train_count']
     if second_train:
         pretrained_model = models.DANNet(num_classes=2)
-        options['pre_trained_model'] = '38_model.pth'
         pretrained_model_path = os.path.join(options['weight_paths'], options['experiment'], '1', options['pre_trained_model'])
         pretrained_model = torch.load(pretrained_model_path)
+
     batch_size = options['batch_size']
     epochs = options['max_epochs']
     lr = [0.001, 0.01]
@@ -109,11 +110,11 @@ if __name__ == '__main__':
     log_interval = 10
     l2_decay = 5e-4
     source_path = options['train_folder']
-    source_name = ''
+    source_name = 'ISBI'
     cuda = not no_cuda and torch.cuda.is_available()
 
     # resize images in path
-    resize_images(options)
+    #resize_images(options)
 
     # generate csv file
     df = generate_csv(options)
@@ -126,7 +127,7 @@ if __name__ == '__main__':
     # fold train data
     df = pd.read_csv(options['train_csv_path'])
     # select training scans
-    train_files = df.loc[df['fold'] != fold, ['patient_id','study']].values
+    train_files = df.loc[df['fold'] != fold, ['patient_id', 'study']].values
     valid_files = df.loc[df['fold'] == fold, ['patient_id', 'study']].values
     train_scan_list = [f[0]+f[1] for f in train_files]
     valid_scan_list = [f[0]+f[1] for f in valid_files]
@@ -147,7 +148,6 @@ if __name__ == '__main__':
     valid_y_data = {f: os.path.join(options['train_folder'], f, options['tmp_folder'],
                                     options['preprocess_y_names'][0])
                     for f in valid_scan_list}
-
 
     torch.manual_seed(seed)
     if cuda:
