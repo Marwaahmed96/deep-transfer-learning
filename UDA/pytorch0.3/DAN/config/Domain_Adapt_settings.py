@@ -39,6 +39,8 @@ class Settings:
         self.options["adapt_history_csv_path"] = os.path.join(self.options['target_train_folder'], self.options['experiment'] + '_' + "history_data.csv")
         self.options['source_h5_path'] = os.path.join(datasets_path, 'miccai/h5df_files/')
         self.options['target_h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files/')
+        self.options['k_fold'] = 5
+
         # ------------------------
         # DataBase
         # ------------------------
@@ -113,7 +115,6 @@ class Settings:
         self.options['randomize_train'] = True
 
         self.options['seed'] = 55
-        self.options['k_fold'] = 5
 
         # --------------------------------------------------
         # model parameters

@@ -38,6 +38,7 @@ class Settings:
         self.options['experiment'] = 'resnet_DAN_full_miccai_train2'
         self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + self.options['train_count'] + '_' + "history_data.csv")
         self.options['h5_path'] = os.path.join(datasets_path, 'miccai/h5df_files/')
+        self.options['k_fold'] = 5
 
         # ------------------------
         # DataBase
@@ -110,9 +111,7 @@ class Settings:
 
         # randomize training features before fitting the model.
         self.options['randomize_train'] = True
-
         self.options['seed'] = 55
-        self.options['k_fold'] = 5
 
         # --------------------------------------------------
         # model parameters

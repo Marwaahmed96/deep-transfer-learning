@@ -14,6 +14,8 @@ import dataset_loader as dl
 from torch.utils.tensorboard import SummaryWriter
 import sys
 from pathlib import Path
+from utils.data_load import load_data_patches, generate_data_patches
+from DatasetsGeneratorFromFiles import *
 
 
 def train(epoch, model, optimizer):
@@ -25,10 +27,11 @@ def train(epoch, model, optimizer):
     train_loss=0
     correct = 0
 
-    iter_source_train = iter(source_train_loader)
-    num_iter_train = len_source_train_loader
-    for i in range(1, num_iter_train):
-        data_source_train, label_source_train = iter_source_train.next()
+    #iter_source_train = iter(source_train_loader)
+    #num_iter_train = len_source_train_loader
+    for i, (data_source_train, label_source_train) in enumerate(train_generator.__getitem__()):
+    #for i in range(1, num_iter_train):
+        #data_source_train, label_source_train = iter_source_train.next()
         if cuda:
             data_source_train, label_source_train = data_source_train.cuda(), label_source_train.cuda()
         data_source_train, label_source_train = Variable(data_source_train), Variable(label_source_train)
@@ -60,10 +63,11 @@ def validate(model):
         model.eval()
         test_loss = 0
         correct = 0
-        iter_source_valid = iter(source_valid_loader)
-        num_iter_valid = len_source_valid_loader
-        for i in range(1, num_iter_valid):
-            data_source_valid, label_source_valid = iter_source_valid.next()
+        for i, (data_source_valid, label_source_valid) in enumerate(valid_generator.__getitem__()):
+        #iter_source_valid = iter(source_valid_loader)
+        #num_iter_valid = len_source_valid_loader
+        #for i in range(1, num_iter_valid):
+            #data_source_valid, label_source_valid = iter_source_valid.next()
             if cuda:
                 data_source_valid, label_source_valid = data_source_valid.cuda(), label_source_valid.cuda()
             data_source_valid, label_source_valid = Variable(data_source_valid), Variable(label_source_valid)
@@ -117,10 +121,10 @@ if __name__ == '__main__':
     #resize_images(options)
 
     # generate csv file
-    df = generate_csv(options)
+    #df = generate_csv(options)
 
     # split data to train, validate folds
-    split_folds(options['train_csv_path'], options['seed'], options['k_fold'])
+    #split_folds(options['train_csv_path'], options['seed'], options['k_fold'])
 
     # list scan
     fold = 0
@@ -155,17 +159,29 @@ if __name__ == '__main__':
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 
-    source_train_loader = dl.load_training(options, train_x_data, train_y_data, model=pretrained_model)
-    source_valid_loader = dl.load_training(options, valid_x_data, valid_y_data, model=pretrained_model)
+    generate_data_patches(train_x_data, train_y_data, options['h5_path'], options['train_csv_path'], options, dataset_name='ISBI')
+    train_files, train_files_ref, train_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='train', fold=fold)
+    train_generator = DatasetGenerator(data=train_files, options=options, patches=train_patches)
+
+    generate_data_patches(valid_x_data, valid_y_data, options['h5_path'], options['train_csv_path'], options, dataset_name='ISBI')
+    valid_files, valid_files_ref, valid_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='valid', fold=fold)
+    valid_generator = DatasetGenerator(data=valid_files, options=options, patches=valid_patches)
+    #source_train_loader = dl.load_training(options, train_x_data, train_y_data, model=pretrained_model)
+    #source_valid_loader = dl.load_training(options, valid_x_data, valid_y_data, model=pretrained_model)
 
     #source_test_loader = data_loader.load_testing('', source_path, batch_size, kwargs)
 
-    len_source_train_dataset = len(source_train_loader.dataset)
-    len_source_valid_dataset = len(source_valid_loader.dataset)
-    len_source_train_loader = len(source_train_loader)
-    len_source_valid_loader = len(source_valid_loader)
+    len_source_train_dataset = train_generator.__len__() * options['batch_size']
+    len_source_valid_dataset = valid_generator.__len__() * options['batch_size']
+    len_source_train_loader = train_generator.__len__()
+    len_source_valid_loader = valid_generator.__len__()
 
     model = models.DANNet(num_classes=2)
+    if options['load_initial_weights']:
+        model = torch.load(options['initial_weights_file'])
+    elif options['save_initial_weights']:
+        Path(options['initial_weights_path']).mkdir(parents=True, exist_ok=True)
+        torch.save(model, options['initial_weights_file'])
     #writer.add_graph(model, torch.rand(size=(128,2,16,16,16)))
     #writer.flush()
     #writer.close()

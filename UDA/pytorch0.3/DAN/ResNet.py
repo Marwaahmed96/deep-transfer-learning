@@ -66,6 +66,8 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
+        self.dropout = nn.Dropout3d(p=0.5)
+        #self.dropout = nn.Dropout3d(p=0.3)
 
     def forward(self, x):
         residual = x
@@ -73,6 +75,7 @@ class Bottleneck(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
+        out = self.dropout(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
@@ -80,7 +83,7 @@ class Bottleneck(nn.Module):
 
         out = self.conv3(out)
         out = self.bn3(out)
-
+        out = self.dropout(out)
         if self.downsample is not None:
             residual = self.downsample(x)
 
@@ -142,7 +145,7 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.avgpool(x)
+        #x = self.avgpool(x)
         x = x.view(x.size(0), -1)
 
         return x
@@ -152,7 +155,8 @@ class DANNet(nn.Module):
     def __init__(self, num_classes=31):
         super(DANNet, self).__init__()
         self.sharedNet = resnet50(False)
-        self.cls_fc = nn.Linear(2048, num_classes)
+        self.cls_fc1 = nn.Linear(16384, 2048)
+        self.cls_fc = nn.Linear(2048, num_classes) #2048
 
     def forward(self, source, target=None):
         loss = 0
@@ -162,6 +166,7 @@ class DANNet(nn.Module):
             #loss += mmd.mmd_rbf_accelerate(source, target)
             loss += mmd.mmd_rbf_noaccelerate(source, target)
 
+        source = self.cls_fc1(source)
         source = self.cls_fc(source)
         #target = self.cls_fc(target)
 

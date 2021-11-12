@@ -45,42 +45,42 @@ def load_target_voxels(train_x_data, options):
 
 
 def generate_data_patches(x_dict, y_dict, h5_path, train_csv_path, options, dataset_name='ISBI'):
-    if os.path.isdir(h5_path) and glob.glob(h5_path+'*.hdf5') and y_dict is not None:
-        print('Data patches already exist try to change location option')
-    else:
-        # generate patches
-        #x_dict, y_dict = get_data_path(options['train_csv_path'], options['modalities'], options['masks'])
-        train_data = pd.read_csv(train_csv_path)
-        for idx in x_dict:
-            train_x_data = {idx: x_dict[idx]}
-            if y_dict is not None:
-                train_y_data = {idx: y_dict[idx]}
-                X, Y, _ = load_training_data(train_x_data, train_y_data, options)
-                print(X.shape, Y.shape)
-            else:
-                X = load_target_voxels(x_dict, options)
-                Y = None
-                train_y_data = None
-                print(X.shape)
+    #if os.path.isdir(h5_path) and glob.glob(h5_path+'*.hdf5') and y_dict is not None:
+    #    print('Data patches already exist try to change location option')
+    #else:
+    # generate patches
+    #x_dict, y_dict = get_data_path(options['train_csv_path'], options['modalities'], options['masks'])
+    train_data = pd.read_csv(train_csv_path)
+    for idx in x_dict:
+        train_x_data = {idx: x_dict[idx]}
+        if y_dict is not None:
+            train_y_data = {idx: y_dict[idx]}
+            X, Y, _ = load_training_data(train_x_data, train_y_data, options)
+            print(X.shape, Y.shape)
+        else:
+            X = load_target_voxels(train_x_data, options)
+            Y = None
+            train_y_data = None
+            print(X.shape)
 
-            Path(h5_path).mkdir(parents=True, exist_ok=True)
-            f5_path = os.path.join(h5_path,'file_'+idx+'.hdf5')
-            if dataset_name == 'ISBI':
-                index = train_data.loc[train_data.patient_id+train_data.study == idx].index[0]
-            else:
-                index = train_data.loc[train_data.center_id+'_'+train_data.patient == idx].index[0]
-            train_data.loc[index, "f5_path"] = f5_path
+        Path(h5_path).mkdir(parents=True, exist_ok=True)
+        f5_path = os.path.join(h5_path,'file_'+idx+'.hdf5')
+        if dataset_name == 'ISBI':
+            index = train_data.loc[train_data.patient_id+train_data.study == idx].index[0]
+        else:
+            index = train_data.loc[train_data.center_id+'_'+train_data.patient == idx].index[0]
+        train_data.loc[index, "f5_path"] = f5_path
 
-            #for i in raw_data:
-            with h5py.File(f5_path, 'w') as f:
-                print(X.shape, 'patches', X.shape[0], 'modalities', X.shape[-1])
-                f.create_dataset("id", data=idx)
-                f.create_dataset("patches", data=X.shape[0])
-                f.create_dataset("modalities", data=X.shape[-1])
-                f.create_dataset(str('X'), data=X)
-                if Y is not None:
-                    f.create_dataset(str('Y'), data=Y)
-        train_data.to_csv(train_csv_path, index=False)
+        #for i in raw_data:
+        with h5py.File(f5_path, 'w') as f:
+            print(X.shape, 'patches', X.shape[0], 'modalities', X.shape[-1])
+            f.create_dataset("id", data=idx)
+            f.create_dataset("patches", data=X.shape[0])
+            f.create_dataset("modalities", data=X.shape[-1])
+            f.create_dataset(str('X'), data=X)
+            if Y is not None:
+                f.create_dataset(str('Y'), data=Y)
+    train_data.to_csv(train_csv_path, index=False)
 
 
 def load_data_patches(h5_path, train_csv_path, phase='train', fold=0):

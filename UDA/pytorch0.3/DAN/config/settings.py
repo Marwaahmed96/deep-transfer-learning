@@ -35,9 +35,12 @@ class Settings:
         self.options['train_count'] = '2' if self.options['second_train'] else '1'
         self.options['pre_trained_model'] = '2_model.pth'
         # current experiment name
-        self.options['experiment'] = 'resnet_DAN_full_isbi_train4'
+        self.options['experiment'] = 'resnet_DAN_full_isbi_train_dropout' #4
         self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + self.options['train_count'] + '_' + "history_data.csv")
-        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files/')
+        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files2/')
+        self.options['k_fold'] = 5
+        self.options['load_initial_weights'] = True
+        self.options['save_initial_weights'] = False
 
         # ------------------------
         # DataBase
@@ -74,9 +77,9 @@ class Settings:
         # percentage of the training vector that is going to be used to validate the model during training
         self.options['train_split'] = 0.25
         # maximum number of epochs used to train the model
-        self.options['max_epochs'] = 200
+        self.options['max_epochs'] = 300
         # maximum number of epochs without improving validation before stopping training
-        self.options['patience'] = 40
+        self.options['patience'] = 50
         # Number of samples used to test at once.
         self.options['batch_size'] = 128
         # verbosity of CNN messaging: 00 (none), 01 (low), 10 (medium), 11 (high)
@@ -86,7 +89,7 @@ class Settings:
         # models have been not tested with this cascaded model
         self.options['fully_convolutional'] = False
         # 3D patch size. So, far only implemented for 3D CNN models.
-        self.options['patch_size'] = (16, 16, 16)
+        self.options['patch_size'] = (32, 32, 32)
         self.options['initial_learning_rate'] = 1e-3
         self.options['learning_rate_drop'] = 0.1  # factor by which the learning rate will be reduced
         # --------------------------------------------------
@@ -110,9 +113,7 @@ class Settings:
 
         # randomize training features before fitting the model.
         self.options['randomize_train'] = True
-
         self.options['seed'] = 55
-        self.options['k_fold'] = 5
 
         # --------------------------------------------------
         # model parameters
@@ -130,8 +131,9 @@ class Settings:
         # file paths to store the network parameter weights. These can be reused for posterior use.
         self.options['weight_paths'] = os.path.join(self.options['code_path'], 'weights')
         # where the model weights initialization so each time begin with the same weight to compare between different models
-        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights.hdf5')
-        self.options['load_initial_weights'] = True
+        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights')
+        self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], 'model_'+self.options['train_count']+'.hdf5')
+
         # Where to save the model weights during train
         # ,TPR,FPR,FNR,Tversky,dice_coefficient
         self.options['metrics'] = ['mse']
