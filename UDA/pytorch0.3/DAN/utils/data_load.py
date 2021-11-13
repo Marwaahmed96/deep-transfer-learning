@@ -44,18 +44,21 @@ def load_target_voxels(train_x_data, options):
     return X
 
 
-def generate_data_patches(x_dict, y_dict, h5_path, train_csv_path, options, dataset_name='ISBI'):
+def generate_data_patches(x_dict, y_dict, options, dataset_name='ISBI', model=None):
     #if os.path.isdir(h5_path) and glob.glob(h5_path+'*.hdf5') and y_dict is not None:
     #    print('Data patches already exist try to change location option')
     #else:
     # generate patches
     #x_dict, y_dict = get_data_path(options['train_csv_path'], options['modalities'], options['masks'])
+    h5_path= options['h5_path']
+    train_csv_path = options['train_csv_path']
+    f5_path_column_name = 'f5_path' + options['train_count']
     train_data = pd.read_csv(train_csv_path)
     for idx in x_dict:
         train_x_data = {idx: x_dict[idx]}
         if y_dict is not None:
             train_y_data = {idx: y_dict[idx]}
-            X, Y, _ = load_training_data(train_x_data, train_y_data, options)
+            X, Y, _ = load_training_data(train_x_data, train_y_data, options, model=model)
             print(X.shape, Y.shape)
         else:
             X = load_target_voxels(train_x_data, options)
@@ -64,12 +67,13 @@ def generate_data_patches(x_dict, y_dict, h5_path, train_csv_path, options, data
             print(X.shape)
 
         Path(h5_path).mkdir(parents=True, exist_ok=True)
-        f5_path = os.path.join(h5_path,'file_'+idx+'.hdf5')
+        f5_path = os.path.join(h5_path, 'file_'+idx+'.hdf5')
         if dataset_name == 'ISBI':
             index = train_data.loc[train_data.patient_id+train_data.study == idx].index[0]
         else:
             index = train_data.loc[train_data.center_id+'_'+train_data.patient == idx].index[0]
-        train_data.loc[index, "f5_path"] = f5_path
+
+        train_data.loc[index, f5_path_column_name] = f5_path
 
         #for i in raw_data:
         with h5py.File(f5_path, 'w') as f:
@@ -83,7 +87,8 @@ def generate_data_patches(x_dict, y_dict, h5_path, train_csv_path, options, data
     train_data.to_csv(train_csv_path, index=False)
 
 
-def load_data_patches(h5_path, train_csv_path, phase='train', fold=0):
+def load_data_patches(h5_path, train_csv_path, phase='train', fold=0, options=None):
+    f5_path_column_name = 'f5_path' + options['train_count']
     #phase['train', 'valid', 'all']
     # patches generated in hdf5 files load it
     if not os.path.isdir(h5_path) and glob.glob(h5_path+'*.hdf5'):
@@ -94,12 +99,12 @@ def load_data_patches(h5_path, train_csv_path, phase='train', fold=0):
     files = []
     df = pd.read_csv(train_csv_path)
     if phase == 'train':
-        files = df.loc[df['fold'] != fold, 'f5_path'].values
+        files = df.loc[df['fold'] != fold, f5_path_column_name].values
     elif phase == 'valid':
-        files = df.loc[df['fold'] == fold, 'f5_path'].values
+        files = df.loc[df['fold'] == fold, f5_path_column_name].values
     else:
         # all files
-        files = df['f5_path'].values
+        files = df[f5_path_column_name].values
 
     files_data = {}
     files_ref = {}

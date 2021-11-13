@@ -28,19 +28,19 @@ class Settings:
         self.options['root_dir'] = root_path
         self.options['data_path'] = os.path.join(datasets_path, 'ISBIOrig/training')
         self.options['code_path'] = os.path.join(root_path, 'Code/deep-transfer-learning/UDA/pytorch0.3/DAN')
-        self.options['train_folder'] = os.path.join(datasets_path, 'ISBI/train/')
+        self.options['train_folder'] = os.path.join(datasets_path, 'ISBI1/train/')
         self.options['test_folder'] = os.path.join(datasets_path, 'ISBI/test/')
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
-        self.options['second_train'] = False
+        self.options['second_train'] = True
         self.options['train_count'] = '2' if self.options['second_train'] else '1'
         self.options['pre_trained_model'] = '2_model.pth'
         # current experiment name
-        self.options['experiment'] = 'resnet_DAN_full_isbi_train_dropout' #4
+        self.options['experiment'] = 'resnet_DAN_full_isbi_train_dropout_test_cascaded' #4
         self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + self.options['train_count'] + '_' + "history_data.csv")
-        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files'+self.options['train_count']+'/')
-        self.options['k_fold'] = 5
-        self.options['load_initial_weights'] = True
-        self.options['save_initial_weights'] = False
+        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI1/h5df_files'+self.options['train_count']+'/')
+        self.options['k_fold'] = 2
+        self.options['load_initial_weights'] = False
+        self.options['save_initial_weights'] = True
 
         # ------------------------
         # DataBase

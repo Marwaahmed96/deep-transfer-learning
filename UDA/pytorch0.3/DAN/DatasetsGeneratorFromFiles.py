@@ -35,7 +35,7 @@ class DatasetGenerator(Dataset):
 
             iter_start = 0
             while iter_start < patient_x_data.shape[0]:
-                print(iter_start)
+                #print('patient:', p, iter_start)
                 if iter_start + batch_size < patient_x_data.shape[0]:
                     iter_end = iter_start + batch_size
                     if len(x_data) > 0:

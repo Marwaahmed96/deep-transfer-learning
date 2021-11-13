@@ -30,6 +30,7 @@ def train(epoch, model, optimizer):
     #iter_source_train = iter(source_train_loader)
     #num_iter_train = len_source_train_loader
     for i, (data_source_train, label_source_train) in enumerate(train_generator.__getitem__()):
+        data_source_train, label_source_train = torch.from_numpy(data_source_train), torch.from_numpy(label_source_train)
     #for i in range(1, num_iter_train):
         #data_source_train, label_source_train = iter_source_train.next()
         if cuda:
@@ -64,6 +65,7 @@ def validate(model):
         test_loss = 0
         correct = 0
         for i, (data_source_valid, label_source_valid) in enumerate(valid_generator.__getitem__()):
+            data_source_valid, label_source_valid = torch.from_numpy(data_source_valid), torch.from_numpy(label_source_valid)
         #iter_source_valid = iter(source_valid_loader)
         #num_iter_valid = len_source_valid_loader
         #for i in range(1, num_iter_valid):
@@ -159,12 +161,22 @@ if __name__ == '__main__':
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 
-    generate_data_patches(train_x_data, train_y_data, options['h5_path'], options['train_csv_path'], options, dataset_name='ISBI')
-    train_files, train_files_ref, train_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='train', fold=fold)
+    if second_train:
+        generate_data_patches(train_x_data, train_y_data, options, dataset_name='ISBI', model=pretrained_model)
+        #pass
+    else:
+        generate_data_patches(train_x_data, train_y_data, options, dataset_name='ISBI')
+        #pass
+    train_files, train_files_ref, train_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='train', fold=fold, options=options)
     train_generator = DatasetGenerator(data=train_files, options=options, patches=train_patches)
 
-    generate_data_patches(valid_x_data, valid_y_data, options['h5_path'], options['train_csv_path'], options, dataset_name='ISBI')
-    valid_files, valid_files_ref, valid_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='valid', fold=fold)
+    if second_train:
+        generate_data_patches(valid_x_data, valid_y_data, options, dataset_name='ISBI', model=pretrained_model)
+        #pass
+    else:
+        generate_data_patches(valid_x_data, valid_y_data, options, dataset_name='ISBI')
+        #pass
+    valid_files, valid_files_ref, valid_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='valid', fold=fold, options=options)
     valid_generator = DatasetGenerator(data=valid_files, options=options, patches=valid_patches)
     #source_train_loader = dl.load_training(options, train_x_data, train_y_data, model=pretrained_model)
     #source_valid_loader = dl.load_training(options, valid_x_data, valid_y_data, model=pretrained_model)
