@@ -74,13 +74,14 @@ class Bottleneck(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.relu(out)
         out = self.dropout(out)
+
+        out = self.relu(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
-
+        #out = self.dropout(out)
         out = self.conv3(out)
         out = self.bn3(out)
         out = self.dropout(out)
@@ -155,7 +156,10 @@ class DANNet(nn.Module):
     def __init__(self, num_classes=31):
         super(DANNet, self).__init__()
         self.sharedNet = resnet50(False)
-        self.cls_fc1 = nn.Linear(16384, 2048)
+        #self.cls_fc1 = nn.Linear(16384, 2048)
+        #self.cls_fc = nn.Linear(2048, num_classes) #2048
+        #self.cls_fc1 = nn.Linear(2048, 1024)
+        #self.cls_fc2 = nn.Linear(1024, 512) #2048
         self.cls_fc = nn.Linear(2048, num_classes) #2048
 
     def forward(self, source, target=None):
@@ -166,7 +170,8 @@ class DANNet(nn.Module):
             #loss += mmd.mmd_rbf_accelerate(source, target)
             loss += mmd.mmd_rbf_noaccelerate(source, target)
 
-        source = self.cls_fc1(source)
+        #source = self.cls_fc1(source)
+        #source = self.cls_fc2(source)
         source = self.cls_fc(source)
         #target = self.cls_fc(target)
 

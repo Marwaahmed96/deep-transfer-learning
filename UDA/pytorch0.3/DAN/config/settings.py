@@ -31,16 +31,17 @@ class Settings:
         self.options['train_folder'] = os.path.join(datasets_path, 'ISBI/train/')
         self.options['test_folder'] = os.path.join(datasets_path, 'ISBI/test/')
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
-        self.options['second_train'] = False
+        self.options['second_train'] = True
         self.options['train_count'] = '2' if self.options['second_train'] else '1'
-        self.options['pre_trained_model'] = '2_model.pth'
+        self.options['pre_trained_model'] = '55_model.pth'
         # current experiment name
-        self.options['experiment'] = 'resnet_DAN_full_isbi_train_dropout' #4
+        self.options['experiment'] = 'resnet_DAN_full_isbi_train_dropout_patch16_3fc' #4
         self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + self.options['train_count'] + '_' + "history_data.csv")
-        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files'+self.options['train_count']+'/')
+        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files_patch16_'+self.options['train_count']+'/')
         self.options['k_fold'] = 5
-        self.options['load_initial_weights'] = True
-        self.options['save_initial_weights'] = False
+        self.options['load_initial_weights'] = False
+        self.options['save_initial_weights'] = True
+        self.options['generate_patches'] = False
 
         # ------------------------
         # DataBase
@@ -89,7 +90,7 @@ class Settings:
         # models have been not tested with this cascaded model
         self.options['fully_convolutional'] = False
         # 3D patch size. So, far only implemented for 3D CNN models.
-        self.options['patch_size'] = (32, 32, 32)
+        self.options['patch_size'] = (16, 16, 16)
         self.options['initial_learning_rate'] = 1e-3
         self.options['learning_rate_drop'] = 0.1  # factor by which the learning rate will be reduced
         # --------------------------------------------------
@@ -133,7 +134,7 @@ class Settings:
         # where the model weights initialization so each time begin with the same weight to compare between different models
         self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights')
         self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], 'model_'+self.options['train_count']+'.hdf5')
-
+        #self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], '52_model.pth')
         # Where to save the model weights during train
         # ,TPR,FPR,FNR,Tversky,dice_coefficient
         self.options['metrics'] = ['mse']

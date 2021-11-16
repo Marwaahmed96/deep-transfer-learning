@@ -446,7 +446,9 @@ def load_test_patches(test_x_data,
     for image_modality in images:
         X.append(get_patches(image_modality[0], selected_voxels, patch_size))
 
+    #print(len(X), len(X[0]))
     Xs = np.stack(X, axis=1)
+    #print(Xs.shape)
     return Xs, selected_voxels
 
 
@@ -490,9 +492,8 @@ def get_patches(image, centers, patch_size=(15, 15, 15)):
                                                     patch_size)]
                   for center in new_centers]
         patches = [new_image[idx] for idx in slices]
-
+        #patches = np.array(patches)
     return patches
-
 
 
 def test_scan(model,
@@ -538,38 +539,40 @@ def test_scan(model,
 
         
 
-    model.eval()
-    iter_num = len(batch)//options['batch_size'] if len(batch) % options['batch_size'] ==0 else len(batch)//options['batch_size'] +1
-    
-    for i in range(iter_num):
-        start=i*options['batch_size']
-        end=start+options['batch_size']
-        data_source_valid = batch[start:end, :]
-        current_centers = centers[start:end]
-        # last batch not completed
-        if i ==iter_num-1 and len(batch) % options['batch_size'] != 0:
-            data_source_valid = batch[start:, :]
-            current_centers = centers[start:]
-            end = options['batch_size']-len(data_source_valid)
-            data_source_valid = np.concatenate((data_source_valid,  batch[:end, :]), axis=0)
-            current_centers = np.concatenate((current_centers, centers[:end]), axis=0)
+    with torch.no_grad():
+        model.eval()
+        iter_num = len(batch)//options['batch_size'] if len(batch) % options['batch_size'] ==0 else len(batch)//options['batch_size'] +1
+
+        for i in range(iter_num):
+            start=i*options['batch_size']
+            end=start+options['batch_size']
+            data_source_valid = batch[start:end, :]
+            current_centers = centers[start:end]
+            # last batch not completed
+            # last iter from batches less than batch_size
+            if i ==iter_num-1 and len(batch) % options['batch_size'] != 0:
+                #data_source_valid = batch[start:, :]
+                #current_centers = centers[start:]
+                end = options['batch_size']-len(data_source_valid)
+                data_source_valid = np.concatenate((data_source_valid,  batch[:end, :]), axis=0)
+                current_centers = np.concatenate((current_centers, centers[:end]), axis=0)
 
 
-        data_source_valid = torch.from_numpy(data_source_valid)
-        if cuda:
-            data_source_valid = data_source_valid.cuda()
-        data_source_valid= Variable(data_source_valid, volatile=True)
-        s_output,_ = model(data_source_valid)
+            data_source_valid = torch.from_numpy(data_source_valid)
+            if cuda:
+                data_source_valid = data_source_valid.cuda()
+            data_source_valid= Variable(data_source_valid)
+            s_output, _ = model(data_source_valid)
 
-        #F.log_softmax(s_output, dim = 1) # sum up batch loss
-        y_pred = s_output.data.max(1)[1] # get the index of the max log-probability
-        y_pred = y_pred.detach().cpu().numpy()
-        y_pred.reshape(-1,1)
-        #y_pred = y_pred.numpy()
+            #F.log_softmax(s_output, dim = 1) # sum up batch loss
+            y_pred = s_output.data.max(1)[1] # get the index of the max log-probability
+            y_pred = y_pred.detach().cpu().numpy()
+            y_pred.reshape(-1, 1)
+            #y_pred = y_pred.numpy()
 
-        [x, y, z] = np.stack(current_centers, axis=1)
+            [x, y, z] = np.stack(current_centers, axis=1)
 
-        seg_image[x, y, z] = y_pred
+            seg_image[x, y, z] = y_pred
     
     if options['debug'] is True:
             print ("...done!")

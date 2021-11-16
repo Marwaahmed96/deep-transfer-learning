@@ -40,7 +40,7 @@ class Settings:
         self.options['h5_path'] = os.path.join(datasets_path, 'ISBI1/h5df_files'+self.options['train_count']+'/')
         self.options['k_fold'] = 2
         self.options['load_initial_weights'] = False
-        self.options['save_initial_weights'] = True
+        self.options['save_initial_weights'] = False
 
         # ------------------------
         # DataBase
@@ -89,7 +89,7 @@ class Settings:
         # models have been not tested with this cascaded model
         self.options['fully_convolutional'] = False
         # 3D patch size. So, far only implemented for 3D CNN models.
-        self.options['patch_size'] = (32, 32, 32)
+        self.options['patch_size'] = (16, 16, 16)
         self.options['initial_learning_rate'] = 1e-3
         self.options['learning_rate_drop'] = 0.1  # factor by which the learning rate will be reduced
         # --------------------------------------------------
