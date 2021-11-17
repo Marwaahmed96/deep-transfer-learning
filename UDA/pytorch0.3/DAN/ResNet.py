@@ -66,22 +66,21 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
-        self.dropout = nn.Dropout3d(p=0.5)
-        #self.dropout = nn.Dropout3d(p=0.3)
+        #self.dropout = nn.Dropout3d(p=0.5)
 
     def forward(self, x):
         residual = x
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.dropout(out)
-
         out = self.relu(out)
+        out = self.dropout(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
-        #out = self.dropout(out)
+        out = self.dropout(out)
+
         out = self.conv3(out)
         out = self.bn3(out)
         out = self.dropout(out)
@@ -90,7 +89,6 @@ class Bottleneck(nn.Module):
 
         out += residual
         out = self.relu(out)
-
         return out
 
 
@@ -104,6 +102,7 @@ class ResNet(nn.Module):
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+        #self.drp1=nn.Dropout3d(p=0.3)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)

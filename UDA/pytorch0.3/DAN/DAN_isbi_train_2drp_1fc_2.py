@@ -1,7 +1,4 @@
 from __future__ import print_function
-import argparse
-
-import pandas as pd
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -93,6 +90,7 @@ def validate(model):
 
 if __name__ == '__main__':
     torch.cuda.empty_cache()
+    #torch.cuda.synchronize()
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     # torch.cuda.set_device(1)
     writer = SummaryWriter('runs')
@@ -164,20 +162,20 @@ if __name__ == '__main__':
     kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 
     if second_train:
-        generate_data_patches(train_x_data, train_y_data, options, dataset_name='ISBI', model=pretrained_model)
-        #pass
+        if options['generate_patches']:
+            generate_data_patches(train_x_data, train_y_data, options, dataset_name='ISBI', model=pretrained_model)
+            generate_data_patches(valid_x_data, valid_y_data, options, dataset_name='ISBI', model=pretrained_model)
+        else:
+            pass
     else:
-        #generate_data_patches(train_x_data, train_y_data, options, dataset_name='ISBI')
-        pass
+        if options['generate_patches']:
+            generate_data_patches(train_x_data, train_y_data, options, dataset_name='ISBI')
+            generate_data_patches(valid_x_data, valid_y_data, options, dataset_name='ISBI')
+        else:
+            pass
     train_files, train_files_ref, train_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='train', fold=fold, options=options)
     train_generator = DatasetGenerator(data=train_files, options=options, patches=train_patches)
 
-    if second_train:
-        generate_data_patches(valid_x_data, valid_y_data, options, dataset_name='ISBI', model=pretrained_model)
-        #pass
-    else:
-        #generate_data_patches(valid_x_data, valid_y_data, options, dataset_name='ISBI')
-        pass
     valid_files, valid_files_ref, valid_patches = load_data_patches(options['h5_path'], options['train_csv_path'], phase='valid', fold=fold, options=options)
     valid_generator = DatasetGenerator(data=valid_files, options=options, patches=valid_patches)
     #source_train_loader = dl.load_training(options, train_x_data, train_y_data, model=pretrained_model)
@@ -221,7 +219,6 @@ if __name__ == '__main__':
     patience_value = 0
     for epoch in range(1, epochs + 1):
         train_correct, train_loss = train(epoch, model, optimizer)
-        #torch.cuda.synchronize()
         t_correct, test_loss = validate(model)
 
         FILE = os.path.join(path, str(epoch)+'_model.pth')
@@ -232,7 +229,7 @@ if __name__ == '__main__':
         else:
             patience_value += 1
         print('patience: ', patience_value)
-        df = pd.DataFrame([[lr[0], train_loss, train_correct, test_loss,  t_correct]], columns=['lr', 'loss', 'accuracy', 'val_loss', 'val_accuracy'])
+        df = pd.DataFrame([[optimizer.param_groups[0]['lr'], train_loss, train_correct, test_loss,  t_correct]], columns=['lr', 'loss', 'accuracy', 'val_loss', 'val_accuracy'])
         history_df = history_df.append(df)
 
         history_df.reset_index(inplace=True)

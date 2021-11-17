@@ -33,15 +33,30 @@ class Settings:
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
         self.options['second_train'] = True
         self.options['train_count'] = '2' if self.options['second_train'] else '1'
-        self.options['pre_trained_model'] = '55_model.pth'
+        self.options['pre_trained_model'] = '86_model.pth'
         # current experiment name
-        self.options['experiment'] = 'resnet_DAN_full_isbi_train_dropout_patch16_3fc' #4
+        #resnet_DAN_full_isbi_train_patch16_2dropout_1fc
+        #resnet_DAN_full_isbi_train_patch16_2dropout2_1fc
+        #resnet_DAN_full_isbi_train_patch16_1fc
+        #resnet_DAN_full_isbi_train_2dropout_patch16_1fc_frommodel1
+        self.options['experiment'] = 'resnet_DAN_full_isbi_train_patch16_1fc_withputdrp' #4
         self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + self.options['train_count'] + '_' + "history_data.csv")
-        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files_patch16_'+self.options['train_count']+'/')
+        self.options['h5_path'] = os.path.join(datasets_path, 'ISBI/h5df_files_patch16_withoutdrp_'+self.options['train_count']+'/')
         self.options['k_fold'] = 5
         self.options['load_initial_weights'] = False
         self.options['save_initial_weights'] = True
-        self.options['generate_patches'] = False
+        self.options['generate_patches'] = True
+
+        # file paths to store the network parameter weights. These can be reused for posterior use.
+        self.options['weight_paths'] = os.path.join(self.options['code_path'], 'weights')
+        # where the model weights initialization so each time begin with the same weight to compare between different models
+        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights', self.options['experiment'])
+        #self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], 'model_'+self.options['train_count']+'.hdf5')
+        #self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], 'model_'+self.options['train_count']+'.pth')
+        self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], '86_model.pth')
+
+        #self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], '52_model.pth')
+        # Where to save the model weights during train
 
         # ------------------------
         # DataBase
@@ -80,7 +95,7 @@ class Settings:
         # maximum number of epochs used to train the model
         self.options['max_epochs'] = 300
         # maximum number of epochs without improving validation before stopping training
-        self.options['patience'] = 50
+        self.options['patience'] = 40
         # Number of samples used to test at once.
         self.options['batch_size'] = 128
         # verbosity of CNN messaging: 00 (none), 01 (low), 10 (medium), 11 (high)
@@ -129,13 +144,6 @@ class Settings:
         self.options['deconvolution'] = True  # if False, will use upsampling instead of deconvolution
 
         # model train config
-        # file paths to store the network parameter weights. These can be reused for posterior use.
-        self.options['weight_paths'] = os.path.join(self.options['code_path'], 'weights')
-        # where the model weights initialization so each time begin with the same weight to compare between different models
-        self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights')
-        self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], 'model_'+self.options['train_count']+'.hdf5')
-        #self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], '52_model.pth')
-        # Where to save the model weights during train
         # ,TPR,FPR,FNR,Tversky,dice_coefficient
         self.options['metrics'] = ['mse']
 
