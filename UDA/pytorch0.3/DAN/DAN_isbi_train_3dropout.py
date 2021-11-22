@@ -91,7 +91,7 @@ def validate(model):
 if __name__ == '__main__':
     torch.cuda.empty_cache()
     #torch.cuda.synchronize()
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     # torch.cuda.set_device(1)
     writer = SummaryWriter('runs')
 

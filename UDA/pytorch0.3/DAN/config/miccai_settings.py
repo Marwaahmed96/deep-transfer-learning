@@ -31,16 +31,16 @@ class Settings:
         self.options['train_folder'] = os.path.join(datasets_path, 'miccai/train/')
         self.options['test_folder'] = os.path.join(datasets_path, 'miccai/test/')
         self.options["train_csv_path"] = os.path.join(self.options['train_folder'], "train_data.csv")
-        self.options['second_train'] = False
+        self.options['second_train'] = True
         self.options['train_count'] = '2' if self.options['second_train'] else '1'
-        self.options['pre_trained_model'] = '2_model.pth'
+        self.options['pre_trained_model'] = '79_model.pth'
         # current experiment name
-        self.options['experiment'] = 'resnet_DAN_full_miccai_train_2dropout_patch16_1fc'
+        self.options['experiment'] = 'resnet_DAN_full_miccai_train_patch16_2dropout'
         self.options["history_csv_path"] = os.path.join(self.options['train_folder'], self.options['experiment'] + '_' + self.options['train_count'] + '_' + "history_data.csv")
-        self.options['h5_path'] = os.path.join(datasets_path, 'miccai/h5df_files_patch16_'+self.options['train_count']+'/')
+        self.options['h5_path'] = os.path.join(datasets_path, 'miccai/h5df_files_dropout3_'+self.options['train_count']+'/')
         #self.options['h5_path'] = os.path.join(datasets_path, 'miccai/h5df_files/')
         self.options['k_fold'] = 2
-        self.options['load_initial_weights'] = False
+        self.options['load_initial_weights'] = True
         self.options['save_initial_weights'] = True
         self.options['generate_patches'] = False
 
@@ -50,6 +50,7 @@ class Settings:
         self.options['initial_weights_path'] = os.path.join(self.options['weight_paths'], 'initial_weights', self.options['experiment'])
         self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], 'model_'+self.options['train_count']+'.hdf5')
         #self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], '52_model.pth')
+        self.options['initial_weights_file'] = os.path.join(self.options['initial_weights_path'], '79_model.pth')
         # Where to save the model weights during train
 
         # ------------------------

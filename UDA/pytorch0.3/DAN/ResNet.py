@@ -66,7 +66,7 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
-        #self.dropout = nn.Dropout3d(p=0.5)
+        self.dropout = nn.Dropout3d(p=0.5)
 
     def forward(self, x):
         residual = x
@@ -79,7 +79,7 @@ class Bottleneck(nn.Module):
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
-        out = self.dropout(out)
+        #out = self.dropout(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
